@@ -80,11 +80,14 @@ public struct CloseUpRequest: Equatable, Sendable {
     public let displayScale: Double
     public let viewport: CloseUpViewport
     public let viewportSize: CGSize
+    public let renderSource: CloseUpRenderSource
 
     public init(frame: CloseUpFrame, region: CloseUpRegion, mode: CloseUpScaleMode,
                 displayScale: Double, viewport: CloseUpViewport = CloseUpViewport(),
-                viewportSize: CGSize = CGSize(width: 280, height: 210)) {
+                viewportSize: CGSize = CGSize(width: 280, height: 210),
+                renderSource: CloseUpRenderSource = .unspecified) {
         self.frame = frame
+        self.renderSource = renderSource
         self.region = region
         self.mode = mode
         self.displayScale = displayScale.isFinite ? min(4, max(1, displayScale)) : 1

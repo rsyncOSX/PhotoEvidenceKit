@@ -42,6 +42,37 @@ pixel, independent of backing scale. At zoom 1, a 280-source-pixel span occupies
 ratio. `CloseUpCropGeometry` supplies the exact sampled/overlay bounds and pan math
 for both renderer and view, including portrait letterboxing and edge clipping.
 
+## Render-source switching
+
+File identity/revision and rendering identity are separate. Supply an immutable
+`CloseUpRenderSource` per frame URL through the panel's `renderSources` argument.
+Its kind distinguishes original images, embedded previews and developed RAW;
+backendID identifies the host pipeline, and revision identifies every setting that
+can change the pixels (including bit depth, development, crop and pipeline version).
+Changing only this descriptor triggers a new crop request while preserving the
+canonical manual region and its stored record. Selected candidates and a retained
+reference can have distinct descriptors, but should follow an explicit host policy.
+
+`CloseUpRequest.renderSource` participates in equality/task invalidation. The
+renderer must return it as `CloseUpRender.renderSource`. A mismatched result is
+rejected, and source changes clear old artifacts while new work is pending.
+Generation checks also reject a late result from an earlier source/settings request.
+The `.unspecified` default supports existing clients with one fixed pipeline.
+
+Keep source-to-render geometry explicit. `CloseUpCoordinateTransform` maps
+canonical normalized coordinates into the developed output; identity is the default.
+Pass it to `CloseUpRasterizer.render`. The returned transform is used by the overlay,
+manual-region inverse mapping and pan calculations. Crop/rotation metadata must
+match the exact decoded image/settings snapshot, not the latest mutable UI settings.
+A region excluded by the developed crop produces a visible unavailable-region error;
+the engine does not silently move the selection to unrelated pixels.
+
+For source-pixel inspection, supply native decoded output rather than a fit-sized
+screen preview. Its dimensions describe the actual developed output, including any
+crop. Hosts must bound native decode concurrency/cache memory separately from the
+small crop artifacts. Source failure must not silently substitute an embedded JPG
+under a developed-RAW descriptor.
+
 ## Linked inspection
 
 Manual region choices are always independent. `CloseUpViewport` is temporary zoom

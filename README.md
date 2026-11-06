@@ -16,6 +16,7 @@ There are no external package dependencies or bundled models/images.
 - Current/reference labels; optional explicit host activation action.
 - Linked or independent pan/zoom around each frame's own region; reset controls.
 - Source-bound, versioned saved-region records through an injected store.
+- Explicit render-source/settings revisions, validated results and crop/straighten coordinate mapping.
 - Generation/cancellation checks and bounded, independently owned raster artifacts.
 
 This package does not decode RAW files, identify subjects, track animals, score
@@ -63,6 +64,11 @@ import PhotoEvidenceUI
 
 The panel has a 304-point width and a 280 × 210-point crop viewport. Embed it on
 either side of the host workspace. The library does not choose its position.
+For selectable render pipelines, pass `renderSources: [URL: CloseUpRenderSource]`
+to the panel. Changing a descriptor rerenders its card without changing the frame's
+file revision or saved region. The host renderer returns the same descriptor;
+`CloseUpRasterizer` supplies it automatically and accepts an optional canonical-to-render
+coordinate transform for developed crop/straightening. RAW decoding remains host-owned.
 Use `CloseUpModel(storage: yourStore)` to enable durable regions. Without a store,
 regions exist only in the current/pinned working set. See [Integration](Documentation/Integration.md)
 for the data and lifecycle contract, and [Architecture](Documentation/Architecture.md)

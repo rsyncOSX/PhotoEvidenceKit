@@ -5,9 +5,11 @@ import PhotoEvidenceContracts
 /// Caller schedules this synchronous worker off the UI actor. CGImage.cropping
 /// can retain an entire source; artifacts are always redrawn into owned buffers.
 public enum CloseUpRasterizer {
-    public static func render(_ image: CGImage, request: CloseUpRequest, sourceLabel: String) throws -> CloseUpRender {
+    public static func render(_ image: CGImage, request: CloseUpRequest, sourceLabel: String,
+                              sourceToRenderTransform: CloseUpCoordinateTransform = .identity) throws -> CloseUpRender {
         try Task.checkCancellation()
-        let rect = CloseUpCropGeometry.pixelBounds(for: request, width: image.width, height: image.height)
+        let rect = CloseUpCropGeometry.pixelBounds(for: request, width: image.width, height: image.height, sourceToRenderTransform: sourceToRenderTransform)
+        guard rect.width > 0, rect.height > 0 else { throw CloseUpRenderError.regionOutsideRender }
         let limit = Int(ceil(max(request.viewportSize.width, request.viewportSize.height) * request.displayScale))
         guard let crop = image.cropping(to: rect),
               let artifact = boundedArtifact(crop, maxPixelSize: limit),
@@ -16,7 +18,8 @@ public enum CloseUpRasterizer {
         try Task.checkCancellation()
         return CloseUpRender(crop: artifact, overview: overview,
             sourceWidth: image.width, sourceHeight: image.height, sourceLabel: sourceLabel,
-            displayedBounds: CloseUpCropGeometry.normalizedBounds(for: request, width: image.width, height: image.height))
+            displayedBounds: CloseUpCropGeometry.normalizedBounds(for: request, width: image.width, height: image.height, sourceToRenderTransform: sourceToRenderTransform),
+            renderSource: request.renderSource, sourceToRenderTransform: sourceToRenderTransform)
     }
 
     private static func boundedArtifact(_ image: CGImage, maxPixelSize: Int) -> CGImage? {

@@ -65,6 +65,13 @@ import PhotoEvidenceContracts
         trimInactiveState()
     }
 
+    /// Refresh a pinned source without adding it to host selection.
+    public func updateReference(_ frame: CloseUpFrame) {
+        guard reference?.id == frame.id else { return }
+        reference = frame
+        updateFrames(selectedFrames)
+    }
+
     public func unpin() { reference = nil; trimInactiveState() }
 
     /// Linking applies relative offsets/zoom around each independent region.

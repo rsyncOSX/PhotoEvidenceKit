@@ -11,6 +11,9 @@ The models never become the authoritative catalog/selection/decision repository.
 Pinning and activating are distinct; linking viewports never transfers a subject
 selection. Stored regions are photographer choices; rendered crops are evictable.
 The rendering artifact type carries CGImage only across the rendering/UI boundary.
+Render-source/settings revisions and affine canonical-to-render mapping are explicit
+contracts, independent of durable file/region identity. Decoders and mutable editor
+state stay in host adapters; decoded results must echo their immutable source descriptor.
 
 This first API implements manual comparison. Future evidence should add immutable,
 revisioned source/region/metric snapshots, typed availability, explicit provider

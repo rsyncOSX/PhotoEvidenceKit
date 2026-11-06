@@ -7,14 +7,16 @@ import PhotoEvidenceEngine
 @MainActor public struct CloseUpPanel: View {
     private let frames: [CloseUpFrame]
     private let currentFrameID: URL?
+    private let renderSources: [URL: CloseUpRenderSource]
     private let model: CloseUpModel
     private let renderer: any CloseUpRendering
     private let onActivate: ((CloseUpFrame) -> Void)?
     private let onClose: () -> Void
 
     public init(frames: [CloseUpFrame], currentFrameID: URL? = nil, model: CloseUpModel,
-                renderer: any CloseUpRendering,
+                renderer: any CloseUpRendering, renderSources: [URL: CloseUpRenderSource] = [:],
                 onActivate: ((CloseUpFrame) -> Void)? = nil, onClose: @escaping () -> Void) {
+        self.renderSources = renderSources
         self.frames = frames
         self.currentFrameID = currentFrameID
         self.model = model
@@ -46,7 +48,7 @@ import PhotoEvidenceEngine
                                                 set: { model.setRegion($0, for: frame.id) }),
                                 viewport: Binding(get: { model.viewport(for: frame.id) },
                                                   set: { model.setViewport($0, for: frame.id) }),
-                                mode: model.mode, renderer: renderer,
+                                mode: model.mode, renderSource: renderSources[frame.id] ?? .unspecified, renderer: renderer,
                                 onPin: { model.pin(frame) }, onUnpin: model.unpin,
                                 onResetRegion: { model.resetRegion(frame.id) },
                                 onResetView: { model.resetViewport(frame.id) },
@@ -124,6 +126,7 @@ private struct CloseUpCard: View {
     @Binding var region: CloseUpRegion
     @Binding var viewport: CloseUpViewport
     let mode: CloseUpScaleMode
+    let renderSource: CloseUpRenderSource
     let renderer: any CloseUpRendering
     let onPin: () -> Void
     let onUnpin: () -> Void
@@ -137,7 +140,7 @@ private struct CloseUpCard: View {
 
     private var request: CloseUpRequest {
         CloseUpRequest(frame: frame, region: region, mode: mode,
-                       displayScale: displayScale, viewport: viewport)
+                       displayScale: displayScale, viewport: viewport, renderSource: renderSource)
     }
 
     var body: some View {
@@ -169,9 +172,10 @@ private struct CloseUpCard: View {
                 if panAnchor == nil { panAnchor = viewport }
                 guard let initial = panAnchor else { return }
                 let initialRequest = CloseUpRequest(frame: frame, region: region, mode: mode,
-                    displayScale: displayScale, viewport: initial)
+                    displayScale: displayScale, viewport: initial, renderSource: renderSource)
                 viewport = CloseUpCropGeometry.pannedViewport(initial, translation: value.translation,
-                    request: initialRequest, sourceWidth: render.sourceWidth, sourceHeight: render.sourceHeight)
+                    request: initialRequest, sourceWidth: render.sourceWidth, sourceHeight: render.sourceHeight,
+                    sourceToRenderTransform: render.sourceToRenderTransform)
             }.onEnded { _ in panAnchor = nil })
             .overlay(alignment: .topTrailing) {
                 if model.isLoading, model.render != nil { ProgressView().controlSize(.small).padding(8) }
@@ -180,11 +184,15 @@ private struct CloseUpCard: View {
             .accessibilityHint("Drag to pan the inspection. Use zoom and pan sliders for keyboard adjustment.")
             if let render = model.render {
                 CloseUpOverview(image: render.overview, bounds: CloseUpCropGeometry.normalizedBounds(
-                    for: request, width: render.sourceWidth, height: render.sourceHeight)) { center in
+                    for: request, width: render.sourceWidth, height: render.sourceHeight,
+                    sourceToRenderTransform: render.sourceToRenderTransform)) { center in
                         let displayed = CloseUpCropGeometry.normalizedBounds(for: request,
-                            width: render.sourceWidth, height: render.sourceHeight)
-                        region.center = CGPoint(x: region.center.x + center.x - displayed.midX,
-                                                y: region.center.y + center.y - displayed.midY)
+                            width: render.sourceWidth, height: render.sourceHeight,
+                            sourceToRenderTransform: render.sourceToRenderTransform)
+                        guard let desired = render.sourceToRenderTransform.inversePoint(center),
+                              let previous = render.sourceToRenderTransform.inversePoint(CGPoint(x: displayed.midX, y: displayed.midY)) else { return }
+                        region.center = CGPoint(x: region.center.x + desired.x - previous.x,
+                                                y: region.center.y + desired.y - previous.y)
                     }
                 Text("\(render.sourceLabel) · \(render.sourceWidth) × \(render.sourceHeight)")
                     .font(.caption2).foregroundStyle(.secondary)
