@@ -207,6 +207,8 @@ private struct CloseUpCard: View {
                 Text("Zoom").font(.caption)
                 Slider(value: $viewport.zoom, in: 0.25 ... 8)
                     .accessibilityLabel("Inspection zoom for \(frame.name)")
+                    .simultaneousGesture(TapGesture(count: 2).onEnded { viewport.zoom = CloseUpViewport().zoom })
+                    .help("Double-click to reset zoom to 1×")
                 Text(viewport.normalized.zoom.formatted(.number.precision(.fractionLength(2))) + "×")
                     .font(.caption.monospacedDigit()).frame(width: 44)
                 Button("Reset view", action: onResetView).controlSize(.small)
@@ -214,26 +216,22 @@ private struct CloseUpCard: View {
             HStack {
                 Text("Pan X").font(.caption)
                 Slider(value: $viewport.offset.x, in: -4 ... 4).accessibilityLabel("Inspection pan X for \(frame.name)")
+                    .simultaneousGesture(TapGesture(count: 2).onEnded { viewport.offset.x = CloseUpViewport().offset.x })
+                    .help("Double-click to reset pan X to zero")
             }
             HStack {
                 Text("Pan Y").font(.caption)
                 Slider(value: $viewport.offset.y, in: -4 ... 4).accessibilityLabel("Inspection pan Y for \(frame.name)")
+                    .simultaneousGesture(TapGesture(count: 2).onEnded { viewport.offset.y = CloseUpViewport().offset.y })
+                    .help("Double-click to reset pan Y to zero")
             }
             HStack {
                 Text("Region size").font(.caption)
                 Slider(value: $region.fraction, in: 0.05 ... 1)
                     .accessibilityLabel("Manual region size for \(frame.name)")
+                    .simultaneousGesture(TapGesture(count: 2).onEnded { region.fraction = CloseUpRegion().fraction })
+                    .help("Double-click to reset region size to 25%")
                 Button("Reset region", action: onResetRegion).controlSize(.small)
-            }
-            HStack {
-                Text("Center X").font(.caption)
-                Slider(value: $region.center.x, in: 0 ... 1)
-                    .accessibilityLabel("Horizontal region center for \(frame.name)")
-            }
-            HStack {
-                Text("Center Y").font(.caption)
-                Slider(value: $region.center.y, in: 0 ... 1)
-                    .accessibilityLabel("Vertical region center for \(frame.name)")
             }
             Text("Overview: choose region. Crop: pan inspection.").font(.caption2).foregroundStyle(.secondary)
             if let failure = model.failure {
@@ -287,7 +285,7 @@ private struct CloseUpOverview: View {
                 .onEnded { _ in dragAnchor = nil })
             .offset(x: origin.x, y: origin.y)
             .accessibilityLabel("Manual region overview")
-            .accessibilityHint("Click or drag to move the region. Center sliders also support keyboard adjustment.")
+            .accessibilityHint("Click or drag to move the region.")
         }
         .frame(height: 110)
     }
