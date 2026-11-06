@@ -180,8 +180,21 @@ private struct CloseUpCard: View {
             .overlay(alignment: .topTrailing) {
                 if model.isLoading, model.render != nil { ProgressView().controlSize(.small).padding(8) }
             }
+            .focusable()
+            .onMoveCommand { direction in
+                var updated = viewport.normalized
+                switch direction {
+                case .left: updated.offset.x -= 0.05
+                case .right: updated.offset.x += 0.05
+                case .up: updated.offset.y -= 0.05
+                case .down: updated.offset.y += 0.05
+                @unknown default: return
+                }
+                viewport = updated.normalized
+            }
+            .help("Tab to the crop, then use arrow keys to pan")
             .accessibilityLabel("Inspection crop for \(frame.name)")
-            .accessibilityHint("Drag to pan the inspection. Use zoom and pan sliders for keyboard adjustment.")
+            .accessibilityHint("Drag to pan the inspection, or focus the crop and use arrow keys. Use the zoom slider to adjust magnification.")
             if let render = model.render {
                 CloseUpOverview(image: render.overview, bounds: CloseUpCropGeometry.normalizedBounds(
                     for: request, width: render.sourceWidth, height: render.sourceHeight,
@@ -214,18 +227,6 @@ private struct CloseUpCard: View {
                 Button("Reset view", action: onResetView).controlSize(.small)
             }
             HStack {
-                Text("Pan X").font(.caption)
-                Slider(value: $viewport.offset.x, in: -4 ... 4).accessibilityLabel("Inspection pan X for \(frame.name)")
-                    .simultaneousGesture(TapGesture(count: 2).onEnded { viewport.offset.x = CloseUpViewport().offset.x })
-                    .help("Double-click to reset pan X to zero")
-            }
-            HStack {
-                Text("Pan Y").font(.caption)
-                Slider(value: $viewport.offset.y, in: -4 ... 4).accessibilityLabel("Inspection pan Y for \(frame.name)")
-                    .simultaneousGesture(TapGesture(count: 2).onEnded { viewport.offset.y = CloseUpViewport().offset.y })
-                    .help("Double-click to reset pan Y to zero")
-            }
-            HStack {
                 Text("Region size").font(.caption)
                 Slider(value: $region.fraction, in: 0.05 ... 1)
                     .accessibilityLabel("Manual region size for \(frame.name)")
@@ -233,7 +234,7 @@ private struct CloseUpCard: View {
                     .help("Double-click to reset region size to 25%")
                 Button("Reset region", action: onResetRegion).controlSize(.small)
             }
-            Text("Overview: choose region. Crop: pan inspection.").font(.caption2).foregroundStyle(.secondary)
+            Text("Overview: choose region. Crop: drag or use arrow keys to pan.").font(.caption2).foregroundStyle(.secondary)
             if let failure = model.failure {
                 Text(verbatim: failure).font(.caption).foregroundStyle(.secondary)
                 Button("Retry image") { retry += 1 }
