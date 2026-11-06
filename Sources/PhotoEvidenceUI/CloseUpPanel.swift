@@ -152,6 +152,31 @@ private struct CloseUpCard: View {
                 Spacer()
             }.font(.caption)
             Text(frame.name).font(.caption.weight(.semibold)).lineLimit(1).help(frame.name)
+            HStack {
+                if isReference { Button("Unpin reference", action: onUnpin) }
+                else { Button(hasReference ? "Replace reference" : "Pin reference", action: onPin) }
+                Spacer()
+                if let onActivate { Button("Show image", action: onActivate) }
+            }.controlSize(.small)
+            HStack {
+                Text("Zoom").font(.caption)
+                Slider(value: $viewport.zoom, in: 0.25 ... 8)
+                    .accessibilityLabel("Inspection zoom for \(frame.name)")
+                    .simultaneousGesture(TapGesture(count: 2).onEnded { viewport.zoom = CloseUpViewport().zoom })
+                    .help("Double-click to reset zoom to 1×")
+                Text(viewport.normalized.zoom.formatted(.number.precision(.fractionLength(2))) + "×")
+                    .font(.caption.monospacedDigit()).frame(width: 44)
+                Button("Reset view", action: onResetView).controlSize(.small)
+            }
+            HStack {
+                Text("Region size").font(.caption)
+                Slider(value: $region.fraction, in: 0.05 ... 1)
+                    .accessibilityLabel("Manual region size for \(frame.name)")
+                    .simultaneousGesture(TapGesture(count: 2).onEnded { region.fraction = CloseUpRegion().fraction })
+                    .help("Double-click to reset region size to 25%")
+                Button("Reset region", action: onResetRegion).controlSize(.small)
+            }
+            Text("Overview: choose region. Crop: drag or use arrow keys to pan.").font(.caption2).foregroundStyle(.secondary)
             ZStack {
                 Rectangle().fill(.black)
                 if let render = model.render {
@@ -210,31 +235,6 @@ private struct CloseUpCard: View {
                 Text("\(render.sourceLabel) · \(render.sourceWidth) × \(render.sourceHeight)")
                     .font(.caption2).foregroundStyle(.secondary)
             }
-            HStack {
-                if isReference { Button("Unpin reference", action: onUnpin) }
-                else { Button(hasReference ? "Replace reference" : "Pin reference", action: onPin) }
-                Spacer()
-                if let onActivate { Button("Show image", action: onActivate) }
-            }.controlSize(.small)
-            HStack {
-                Text("Zoom").font(.caption)
-                Slider(value: $viewport.zoom, in: 0.25 ... 8)
-                    .accessibilityLabel("Inspection zoom for \(frame.name)")
-                    .simultaneousGesture(TapGesture(count: 2).onEnded { viewport.zoom = CloseUpViewport().zoom })
-                    .help("Double-click to reset zoom to 1×")
-                Text(viewport.normalized.zoom.formatted(.number.precision(.fractionLength(2))) + "×")
-                    .font(.caption.monospacedDigit()).frame(width: 44)
-                Button("Reset view", action: onResetView).controlSize(.small)
-            }
-            HStack {
-                Text("Region size").font(.caption)
-                Slider(value: $region.fraction, in: 0.05 ... 1)
-                    .accessibilityLabel("Manual region size for \(frame.name)")
-                    .simultaneousGesture(TapGesture(count: 2).onEnded { region.fraction = CloseUpRegion().fraction })
-                    .help("Double-click to reset region size to 25%")
-                Button("Reset region", action: onResetRegion).controlSize(.small)
-            }
-            Text("Overview: choose region. Crop: drag or use arrow keys to pan.").font(.caption2).foregroundStyle(.secondary)
             if let failure = model.failure {
                 Text(verbatim: failure).font(.caption).foregroundStyle(.secondary)
                 Button("Retry image") { retry += 1 }
