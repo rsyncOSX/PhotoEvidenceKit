@@ -106,3 +106,24 @@ cache memory and concurrency. Lazy views alone are not a memory budget.
 ## License
 
 [MIT](LICENSE), copyright 2026 Thomas Evensen.
+
+### Optional recorded AF-point assistance
+
+`CloseUpPanel` accepts `afPoints: [URL: CloseUpAFPointAvailability] = [:]`.
+Existing clients remain unchanged. Omit a key to hide the control; supply
+`.unavailable(reason: "Unsupported AF metadata")` to show a disabled button and explanation.
+For a usable point, construct `CloseUpAFPoint(frame:center:)` and supply `.available(target)`.
+The failable initializer rejects nonfinite or out-of-range coordinates.
+
+The host owns AF metadata decoding, active-point disambiguation and orientation mapping.
+Supply normalized canonical oriented-image coordinates (top-left origin, x right, y down),
+not developed-output or screen coordinates. Include a retained reference's entry even when
+it is no longer selected. Refresh targets when frame revisions change; stale targets are disabled
+and rejected by the model. AF metadata/settings changes that affect placement must refresh the
+host-supplied availability as well.
+
+**Use AF point** is a one-time manual-region action, not tracking or a sharpness claim.
+It preserves region size, zoom, pan and linking, changes only that frame and saves through
+the normal region store, including its failure/retry behavior. Existing pan offsets still apply;
+Reset view removes them if needed. Image-edge placement follows normal bounds clamping.
+The region remains manually editable. Ratings, winners and host selection are untouched.

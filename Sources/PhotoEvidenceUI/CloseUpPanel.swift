@@ -8,6 +8,7 @@ import PhotoEvidenceEngine
     private let frames: [CloseUpFrame]
     private let currentFrameID: URL?
     private let renderSources: [URL: CloseUpRenderSource]
+    private let afPoints: [URL: CloseUpAFPointAvailability]
     private let model: CloseUpModel
     private let renderer: any CloseUpRendering
     private let onActivate: ((CloseUpFrame) -> Void)?
@@ -15,7 +16,9 @@ import PhotoEvidenceEngine
 
     public init(frames: [CloseUpFrame], currentFrameID: URL? = nil, model: CloseUpModel,
                 renderer: any CloseUpRendering, renderSources: [URL: CloseUpRenderSource] = [:],
+                afPoints: [URL: CloseUpAFPointAvailability] = [:],
                 onActivate: ((CloseUpFrame) -> Void)? = nil, onClose: @escaping () -> Void) {
+        self.afPoints = afPoints
         self.renderSources = renderSources
         self.frames = frames
         self.currentFrameID = currentFrameID
@@ -50,6 +53,8 @@ import PhotoEvidenceEngine
                                                   set: { model.setViewport($0, for: frame.id) }),
                                 mode: model.mode, renderSource: renderSources[frame.id] ?? .unspecified, renderer: renderer,
                                 onPin: { model.pin(frame) }, onUnpin: model.unpin,
+                                afPoint: afPoints[frame.id],
+                                onUseAFPoint: { target in model.useAFPoint(target) },
                                 onResetRegion: { model.resetRegion(frame.id) },
                                 onResetView: { model.resetViewport(frame.id) },
                                 onActivate: frames.contains(where: { $0.id == frame.id })
@@ -130,6 +135,8 @@ private struct CloseUpCard: View {
     let renderer: any CloseUpRendering
     let onPin: () -> Void
     let onUnpin: () -> Void
+    let afPoint: CloseUpAFPointAvailability?
+    let onUseAFPoint: (CloseUpAFPoint) -> Void
     let onResetRegion: () -> Void
     let onResetView: () -> Void
     let onActivate: (() -> Void)?
@@ -175,6 +182,20 @@ private struct CloseUpCard: View {
                     .simultaneousGesture(TapGesture(count: 2).onEnded { region.fraction = CloseUpRegion().fraction })
                     .help("Double-click to reset region size to 25%")
                 Button("Reset region", action: onResetRegion).controlSize(.small)
+            }
+            if let afPoint {
+                Button("Use AF point") {
+                    if let target = afPoint.target(for: frame) { onUseAFPoint(target) }
+                }
+                .controlSize(.small)
+                .disabled(afPoint.target(for: frame) == nil)
+                .help(afPoint.explanation(for: frame))
+                .accessibilityLabel("Use AF point for \(frame.name)")
+                .accessibilityHint(afPoint.explanation(for: frame))
+                if afPoint.target(for: frame) == nil {
+                    Text(verbatim: afPoint.explanation(for: frame))
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
             }
             Text("Overview: choose region. Crop: drag or use arrow keys to pan.").font(.caption2).foregroundStyle(.secondary)
             ZStack {

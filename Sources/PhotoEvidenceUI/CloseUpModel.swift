@@ -56,6 +56,17 @@ import PhotoEvidenceContracts
         persist(CloseUpRegionRecord(frame: frame, region: region))
     }
 
+    /// One-time manual-region placement. Preserves size, viewport and linked state;
+    /// edge targets are clamped by the normal region bounds policy.
+    /// Returns false for inactive frames or metadata from an obsolete revision.
+    @discardableResult public func useAFPoint(_ target: CloseUpAFPoint) -> Bool {
+        guard comparisonFrames.contains(target.frame), knownFrames[target.frame.id] == target.frame else { return false }
+        var region = region(for: target.frame.id)
+        region.center = target.center
+        setRegion(region, for: target.frame.id)
+        return true
+    }
+
     public func resetRegion(_ id: URL) { setRegion(CloseUpRegion(), for: id) }
 
     public func pin(_ frame: CloseUpFrame) {
