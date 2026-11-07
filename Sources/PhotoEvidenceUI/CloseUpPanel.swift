@@ -12,18 +12,21 @@ import PhotoEvidenceEngine
     private let model: CloseUpModel
     private let renderer: any CloseUpRendering
     private let onActivate: ((CloseUpFrame) -> Void)?
+    private let onUseAFPoint: ((CloseUpFrame) -> Void)?
     private let onClose: () -> Void
 
     public init(frames: [CloseUpFrame], currentFrameID: URL? = nil, model: CloseUpModel,
                 renderer: any CloseUpRendering, renderSources: [URL: CloseUpRenderSource] = [:],
                 afPoints: [URL: CloseUpAFPointAvailability] = [:],
-                onActivate: ((CloseUpFrame) -> Void)? = nil, onClose: @escaping () -> Void) {
+                onActivate: ((CloseUpFrame) -> Void)? = nil,
+                onUseAFPoint: ((CloseUpFrame) -> Void)? = nil, onClose: @escaping () -> Void) {
         self.afPoints = afPoints
         self.renderSources = renderSources
         self.frames = frames
         self.currentFrameID = currentFrameID
         self.model = model
         self.renderer = renderer
+        self.onUseAFPoint = onUseAFPoint
         self.onActivate = onActivate
         self.onClose = onClose
     }
@@ -54,7 +57,9 @@ import PhotoEvidenceEngine
                                 mode: model.mode, renderSource: renderSources[frame.id] ?? .unspecified, renderer: renderer,
                                 onPin: { model.pin(frame) }, onUnpin: model.unpin,
                                 afPoint: afPoints[frame.id],
-                                onUseAFPoint: { target in model.useAFPoint(target) },
+                                onUseAFPoint: { target in
+                                    if model.useAFPoint(target) { onUseAFPoint?(frame) }
+                                },
                                 onResetRegion: { model.resetRegion(frame.id) },
                                 onResetView: { model.resetViewport(frame.id) },
                                 onActivate: frames.contains(where: { $0.id == frame.id })
