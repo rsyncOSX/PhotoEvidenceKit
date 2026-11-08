@@ -57,9 +57,10 @@ import PhotoEvidenceEngine
                                 mode: model.mode, renderSource: renderSources[frame.id] ?? .unspecified, renderer: renderer,
                                 onPin: { model.pin(frame) }, onUnpin: model.unpin,
                                 afPoint: afPoints[frame.id],
-                                onUseAFPoint: { target in
-                                    if model.useAFPoint(target) { onUseAFPoint?(frame) }
-                                },
+                                usesAFPoint: Binding(get: { model.usesAFPoint }, set: { enabled in
+                                    model.usesAFPoint = enabled
+                                    if enabled { onUseAFPoint?(frame) }
+                                }),
                                 onResetRegion: { model.resetRegion(frame.id) },
                                 onResetView: { model.resetViewport(frame.id) },
                                 onActivate: frames.contains(where: { $0.id == frame.id })
@@ -71,6 +72,7 @@ import PhotoEvidenceEngine
         }
         .frame(width: 304)
         .background(.background)
+        .onChange(of: afPoints, initial: true) { _, points in model.updateAFPoints(points) }
         .onChange(of: frames, initial: true) { _, updated in model.updateFrames(updated) }
     }
 }
@@ -141,7 +143,7 @@ private struct CloseUpCard: View {
     let onPin: () -> Void
     let onUnpin: () -> Void
     let afPoint: CloseUpAFPointAvailability?
-    let onUseAFPoint: (CloseUpAFPoint) -> Void
+    @Binding var usesAFPoint: Bool
     let onResetRegion: () -> Void
     let onResetView: () -> Void
     let onActivate: (() -> Void)?
@@ -189,11 +191,10 @@ private struct CloseUpCard: View {
                 Button("Reset region", action: onResetRegion).controlSize(.small)
             }
             if let afPoint {
-                Button("Use AF point") {
-                    if let target = afPoint.target(for: frame) { onUseAFPoint(target) }
-                }
+                Toggle("Use AF point", isOn: $usesAFPoint)
+                .toggleStyle(.button)
                 .controlSize(.small)
-                .disabled(afPoint.target(for: frame) == nil)
+                .disabled(!usesAFPoint && afPoint.target(for: frame) == nil)
                 .help(afPoint.explanation(for: frame))
                 .accessibilityLabel("Use AF point for \(frame.name)")
                 .accessibilityHint(afPoint.explanation(for: frame))

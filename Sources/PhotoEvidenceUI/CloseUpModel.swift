@@ -5,6 +5,11 @@ import PhotoEvidenceContracts
 /// Session interaction state only. Selection, ratings and photographer winners
 /// remain host-owned. Pinning is temporary and never sets a winner or rating.
 @MainActor @Observable public final class CloseUpModel {
+    /// Session preference shared by all close-ups; hosts can synchronize their AF overlay.
+    public var usesAFPoint = false {
+        didSet { if usesAFPoint { applyAFPoints() } }
+    }
+    @ObservationIgnored private var afPoints: [URL: CloseUpAFPointAvailability] = [:]
     public var mode: CloseUpScaleMode = .fitRegion
     public private(set) var isLinked = false
     public private(set) var reference: CloseUpFrame?
@@ -47,6 +52,7 @@ import PhotoEvidenceContracts
             knownFrames[frame.id] = frame
         }
         trimInactiveState()
+        applyAFPoints()
     }
 
     /// Changes a manual region only for this frame; linking never copies regions.
@@ -65,6 +71,30 @@ import PhotoEvidenceContracts
         region.center = target.center
         setRegion(region, for: target.frame.id)
         return true
+    }
+
+    /// Refresh metadata independently of selection, including asynchronously loaded AF points.
+    public func updateAFPoints(_ points: [URL: CloseUpAFPointAvailability]) {
+        afPoints = points
+        applyAFPoints()
+    }
+
+    private func applyAFPoints() {
+        guard usesAFPoint else { return }
+        for frame in comparisonFrames {
+            guard let target = afPoints[frame.id]?.target(for: frame) else { continue }
+            var region = region(for: frame.id)
+            region.center = target.center
+            if region.normalized != self.region(for: frame.id) {
+                setRegion(region, for: frame.id)
+            }
+            // A previously panned viewport must not displace the AF point from the center.
+            if viewport(for: frame.id).offset != .zero {
+                var viewport = viewport(for: frame.id)
+                viewport.offset = .zero
+                setViewport(viewport, for: frame.id)
+            }
+        }
     }
 
     public func resetRegion(_ id: URL) { setRegion(CloseUpRegion(), for: id) }

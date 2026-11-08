@@ -40,6 +40,30 @@ struct AFPointTests {
         #expect(model.region(for: a.id) == CloseUpRegion()) // No ongoing snapping.
     }
 
+    @Test @MainActor func enabledModeFollowsNavigationAndLateMetadataUntilDisabled() throws {
+        let a = frame(), b = frame("b"), revised = frame("b", revision: "2")
+        let model = CloseUpModel()
+        let first = try #require(CloseUpAFPoint(frame: a, center: CGPoint(x: 0.3, y: 0.7)))
+        let next = try #require(CloseUpAFPoint(frame: b, center: CGPoint(x: 0.6, y: 0.4)))
+        model.updateFrames([a])
+        model.updateAFPoints([a.id: .available(first)])
+        model.setViewport(CloseUpViewport(offset: CGPoint(x: 0.1, y: 0.2), zoom: 2), for: a.id)
+        model.usesAFPoint = true
+        #expect(model.region(for: a.id).center == first.center)
+        #expect(model.viewport(for: a.id).offset == .zero)
+        #expect(model.viewport(for: a.id).zoom == 2)
+        model.updateFrames([b])
+        #expect(model.usesAFPoint)
+        model.updateAFPoints([b.id: .available(next)])
+        #expect(model.region(for: b.id).center == next.center)
+        model.updateFrames([revised])
+        #expect(model.region(for: b.id) == CloseUpRegion()) // Stale metadata cannot place a revised frame.
+        model.usesAFPoint = false
+        model.updateFrames([a])
+        model.updateAFPoints([a.id: .available(first)])
+        #expect(model.region(for: a.id) == CloseUpRegion())
+    }
+
     @Test @MainActor func rejectsStaleAndInactiveTargets() throws {
         let old = frame(), updated = frame(revision: "2")
         let target = try #require(CloseUpAFPoint(frame: old, center: .zero))
