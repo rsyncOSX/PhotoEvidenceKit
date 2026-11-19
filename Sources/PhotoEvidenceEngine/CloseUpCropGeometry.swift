@@ -14,8 +14,12 @@ public enum CloseUpCropGeometry {
         let selected = CGRect(x: mapped.minX * Double(width), y: mapped.minY * Double(height),
                               width: mapped.width * Double(width), height: mapped.height * Double(height)).integral
         let view = request.viewport.normalized
-        let baseWidth = request.mode == .sourcePixels ? min(selected.width, request.viewportSize.width) : selected.width
-        let baseHeight = request.mode == .sourcePixels ? min(selected.height, request.viewportSize.height) : selected.height
+        // 1:1 means one source pixel per device pixel, so the viewport (in
+        // points) covers viewportSize × displayScale source pixels.
+        let deviceWidth = request.viewportSize.width * request.displayScale
+        let deviceHeight = request.viewportSize.height * request.displayScale
+        let baseWidth = request.mode == .sourcePixels ? min(selected.width, deviceWidth) : selected.width
+        let baseHeight = request.mode == .sourcePixels ? min(selected.height, deviceHeight) : selected.height
         let cropWidth = min(Double(width), max(1, floor(baseWidth / view.zoom)))
         let cropHeight = min(Double(height), max(1, floor(baseHeight / view.zoom)))
         let centerX = selected.midX + view.offset.x * selected.width
@@ -46,7 +50,9 @@ public enum CloseUpCropGeometry {
         let rect = pixelBounds(for: request, width: sourceWidth, height: sourceHeight, sourceToRenderTransform: sourceToRenderTransform)
         guard rect.width > 0, rect.height > 0 else { return initial.normalized }
         let fitScale = min(request.viewportSize.width / rect.width, request.viewportSize.height / rect.height)
-        let xFactor = request.mode == .sourcePixels ? 1 / initial.normalized.zoom : 1 / fitScale
+        // A drag of one point moves displayScale device pixels, i.e. that many
+        // source pixels at 1:1.
+        let xFactor = request.mode == .sourcePixels ? request.displayScale / initial.normalized.zoom : 1 / fitScale
         let yFactor = xFactor
         return CloseUpViewport(offset: CGPoint(
             x: initial.offset.x - translation.width * xFactor / selected.width,

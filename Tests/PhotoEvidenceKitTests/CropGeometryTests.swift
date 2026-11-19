@@ -33,7 +33,24 @@ struct CropGeometryTests {
         let request = CloseUpRequest(frame: frame, region: CloseUpRegion(fraction: 1),
             mode: .sourcePixels, displayScale: 2, viewport: CloseUpViewport(zoom: 2))
         let rect = CloseUpCropGeometry.pixelBounds(for: request, width: 1200, height: 800)
-        #expect(rect.size == CGSize(width: 140, height: 105))
+        // 280×210 pt at 2× is 560×420 device pixels; 2× zoom halves that.
+        #expect(rect.size == CGSize(width: 280, height: 210))
+    }
+
+    @Test func sourcePixelsAreDevicePixelsOnRetina() {
+        let request = CloseUpRequest(frame: frame, region: CloseUpRegion(fraction: 1),
+            mode: .sourcePixels, displayScale: 2, viewportSize: CGSize(width: 280, height: 210))
+        let rect = CloseUpCropGeometry.pixelBounds(for: request, width: 6000, height: 4000)
+        #expect(rect.size == CGSize(width: 560, height: 420))
+        let standard = CloseUpRequest(frame: frame, region: CloseUpRegion(fraction: 1),
+            mode: .sourcePixels, displayScale: 1, viewportSize: CGSize(width: 280, height: 210))
+        #expect(CloseUpCropGeometry.pixelBounds(for: standard, width: 6000, height: 4000).size == CGSize(width: 280, height: 210))
+
+        // A 28 pt drag moves 56 source pixels at 1:1 on a 2× display.
+        let moved = CloseUpCropGeometry.pannedViewport(CloseUpViewport(),
+            translation: CGSize(width: 28, height: 0), request: request,
+            sourceWidth: 6000, sourceHeight: 4000)
+        #expect(abs(moved.offset.x + 56.0 / 6000.0) < 0.000001)
     }
 
     @Test func fitPanningUsesPortraitLetterboxScale() {

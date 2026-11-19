@@ -208,9 +208,10 @@ private struct CloseUpCard: View {
                 Rectangle().fill(.black)
                 if let render = model.render {
                     if mode == .sourcePixels {
+                        // Source pixels map to device pixels, so divide by the scale for points.
                         Image(decorative: render.crop, scale: 1).resizable()
-                            .frame(width: render.displayedBounds.width * Double(render.sourceWidth) * viewport.normalized.zoom,
-                                   height: render.displayedBounds.height * Double(render.sourceHeight) * viewport.normalized.zoom)
+                            .frame(width: render.displayedBounds.width * Double(render.sourceWidth) * viewport.normalized.zoom / displayScale,
+                                   height: render.displayedBounds.height * Double(render.sourceHeight) * viewport.normalized.zoom / displayScale)
                     } else {
                         Image(decorative: render.crop, scale: displayScale).resizable().scaledToFit()
                     }
