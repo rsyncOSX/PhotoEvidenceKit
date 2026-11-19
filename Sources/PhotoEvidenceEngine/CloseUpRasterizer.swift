@@ -22,7 +22,9 @@ public enum CloseUpRasterizer {
             renderSource: request.renderSource, sourceToRenderTransform: sourceToRenderTransform)
     }
 
-    private static func boundedArtifact(_ image: CGImage, maxPixelSize: Int) -> CGImage? {
+    /// Redraws into an owned bitmap no larger than `maxPixelSize`, so the result
+    /// never shares (and keeps alive) the source image's backing store.
+    static func boundedArtifact(_ image: CGImage, maxPixelSize: Int) -> CGImage? {
         let factor = min(1, Double(maxPixelSize) / Double(max(image.width, image.height)))
         let width = max(1, Int(Double(image.width) * factor))
         let height = max(1, Int(Double(image.height) * factor))

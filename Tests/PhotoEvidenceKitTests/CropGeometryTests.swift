@@ -46,6 +46,23 @@ struct CropGeometryTests {
         #expect(moved.offset.y == 0)
     }
 
+    @Test func detectedFaceCropOwnsABoundedBuffer() throws {
+        let context = try #require(CGContext(data: nil, width: 2000, height: 2000, bitsPerComponent: 8,
+            bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let preview = try #require(context.makeImage())
+        let face = DetectedFaceCloseUp(id: 0, normalizedBounds: CGRect(x: 0.4, y: 0.4, width: 0.1, height: 0.1), localDetail: nil)
+        let crop = try #require(DetectedFaceRasterizer.crop(face, from: preview))
+        // 200 px face padded by 20% per side.
+        #expect(crop.width == 280 && crop.height == 280)
+        let bytes = try #require(crop.dataProvider?.data.map(CFDataGetLength))
+        #expect(bytes <= crop.height * crop.bytesPerRow)
+        #expect(bytes < preview.height * preview.bytesPerRow / 10)
+
+        let large = DetectedFaceCloseUp(id: 1, normalizedBounds: CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.8), localDetail: nil)
+        let bounded = try #require(DetectedFaceRasterizer.crop(large, from: preview))
+        #expect(max(bounded.width, bounded.height) <= DetectedFaceRasterizer.defaultMaxPixelSize)
+    }
+
     @Test func artifactBoundsAndOverviewGeometryAgree() throws {
         let context = try #require(CGContext(data: nil, width: 1800, height: 1200, bitsPerComponent: 8,
             bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
